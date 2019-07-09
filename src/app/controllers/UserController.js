@@ -31,6 +31,52 @@ class UserController {
       email,
     });
   }
+
+  async update(req, res) {
+    const schema = Yup.object().shape({
+      name: Yup.string(),
+      email: Yup.string().email(),
+      oldPassword: Yup.string()
+        .min(6)
+        .when('password', (password, field) =>
+          password ? field.required() : field
+        ),
+      password: Yup.string().min(6),
+      confirmPassword: Yup.string().when('password', (password, field) =>
+        password ? field.required().oneOf([Yup.ref('password')]) : field
+      ),
+    });
+
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: 'Validation failed' });
+    }
+
+    const { email, oldPassword } = req.body;
+
+    const user = await User.findByPk(req.userId);
+
+    // Just make this validation if email is sent in requisition
+    if (email && email !== user.email) {
+      const userExists = await User.findOne({ where: { email } });
+
+      if (userExists) {
+        return res.status(400).json({ error: 'Email already in use' });
+      }
+    }
+
+    // Just make this validation if oldPassword is sent in requisition
+    if (oldPassword && !(await user.checkPassword(oldPassword))) {
+      return res.status(401).json({ error: 'Password does not match' });
+    }
+
+    const { id, name } = await user.update(req.body);
+
+    return res.json({
+      id,
+      name,
+      email: user.email, // guarantee that we will always return email
+    });
+  }
 }
 
 export default new UserController();

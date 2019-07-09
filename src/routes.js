@@ -13,5 +13,6 @@ routes.post('/sessions', SessionController.store);
 routes.use(authMiddleware);
 
 // Routes that require authentication go here.
+routes.put('/users', UserController.update);
 
 export default routes;
