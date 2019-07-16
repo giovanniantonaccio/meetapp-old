@@ -71,11 +71,12 @@ class MeetupController {
   async update(req, res) {
     const { id } = req.params;
     const { name, description, location, date, banner_id } = req.body;
+
+    const meetup = await Meetup.findByPk(id);
+
     /**
      * Check if the meetup exist
      */
-    const meetup = await Meetup.findByPk(id);
-
     if (!meetup) {
       return res.status(400).json({ error: 'Meetup does not exist' });
     }
@@ -126,11 +127,11 @@ class MeetupController {
   async delete(req, res) {
     const { id } = req.params;
 
+    const meetup = await Meetup.findByPk(id);
+
     /**
      * Check if the meetup exist
      */
-    const meetup = await Meetup.findByPk(id);
-
     if (!meetup) {
       return res.status(400).json({ error: 'Meetup does not exist' });
     }
