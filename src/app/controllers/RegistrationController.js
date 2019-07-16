@@ -2,12 +2,24 @@ import { isBefore } from 'date-fns';
 
 import Registration from '../models/Registration';
 import Meetup from '../models/Meetup';
+import User from '../models/User';
+
+import RegistrationMail from '../jobs/RegistrationMail';
+import Queue from '../../lib/Queue';
 
 class RegistrationController {
   async store(req, res) {
     const { id } = req.params;
 
-    const meetup = await Meetup.findByPk(id);
+    const meetup = await Meetup.findByPk(id, {
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['name', 'email'],
+        },
+      ],
+    });
 
     /**
      * Check if the meetup exist
@@ -79,6 +91,16 @@ class RegistrationController {
     const subscription = await Registration.create({
       meetup_id: id,
       user_id: req.userId,
+    });
+
+    /**
+     * Send mail to the owner of the meetup confirming the registration
+     */
+    const user = await User.findByPk(req.userId);
+
+    await Queue.add(RegistrationMail.key, {
+      meetup,
+      user,
     });
 
     return res.json(subscription);
