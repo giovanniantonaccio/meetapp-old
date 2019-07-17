@@ -1,16 +1,43 @@
 import * as Yup from 'yup';
-import { startOfHour, parseISO, isBefore } from 'date-fns';
+import {
+  startOfHour,
+  parseISO,
+  isBefore,
+  startOfDay,
+  endOfDay,
+} from 'date-fns';
+import { Op } from 'sequelize';
 import Meetup from '../models/Meetup';
 import File from '../models/File';
 import User from '../models/User';
 
 class MeetupController {
   async index(req, res) {
-    const { page } = req.query;
+    const { page, date } = req.query;
     const pagination_limit = 10;
 
+    /**
+     * Check page
+     */
+    if (!page) {
+      return res.status(400).json({ error: 'Page must be informed' });
+    }
+
+    /**
+     * Check date
+     */
+    const parsedDate = parseISO(date);
+    if (!date) {
+      return res.status(400).json({ error: 'Date must be informed' });
+    }
+
     const meetups = await Meetup.findAll({
-      where: { user_id: req.userId },
+      where: {
+        user_id: req.userId,
+        date: {
+          [Op.between]: [startOfDay(parsedDate), endOfDay(parsedDate)],
+        },
+      },
       order: ['date'],
       limit: pagination_limit,
       offset: (page - 1) * pagination_limit,
