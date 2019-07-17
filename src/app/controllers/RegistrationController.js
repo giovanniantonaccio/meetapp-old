@@ -1,4 +1,5 @@
 import { isBefore } from 'date-fns';
+import { Op } from 'sequelize';
 
 import Registration from '../models/Registration';
 import Meetup from '../models/Meetup';
@@ -8,6 +9,31 @@ import RegistrationMail from '../jobs/RegistrationMail';
 import Queue from '../../lib/Queue';
 
 class RegistrationController {
+  async index(req, res) {
+    const registrations = await Registration.findAll({
+      where: { user_id: req.userId },
+      attributes: ['id', 'meetup_id'],
+      include: {
+        model: Meetup,
+        as: 'meetup',
+        attributes: ['name', 'description', 'location', 'date'],
+        where: {
+          date: {
+            [Op.gt]: new Date(),
+          },
+        },
+        include: {
+          model: User,
+          as: 'user',
+          attributes: ['name', 'email'],
+        },
+      },
+      order: [[{ model: Meetup, as: 'meetup' }, 'date', 'ASC']],
+    });
+
+    return res.json(registrations);
+  }
+
   async store(req, res) {
     const { id } = req.params;
 
